@@ -4,15 +4,16 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FavoriteDao {
+    @Query("SELECT * FROM favorite")
+    fun getAll(): Flow<List<Favorite>>
+
     @Insert
-    suspend fun insertFavorites(vararg favorites: Favorite)
+    suspend fun addFavorite(favorite: Favorite)
 
     @Delete
-    suspend fun deleteFavorites(vararg favorites: Favorite)
-
-    @Query("SELECT * FROM favorite")
-    suspend fun getAll(): List<Favorite>
+    suspend fun removeFavorite(favorite: Favorite)
 }
