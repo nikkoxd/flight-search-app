@@ -11,16 +11,17 @@ import com.example.lab5.data.Airport
 import com.example.lab5.data.Favorite
 import com.example.lab5.data.FlightsRepository
 import com.example.lab5.data.OfflineFlightsRepository
+import com.example.lab5.data.UserPreferencesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 class FlightsViewModel(
-    private val flightsRepository: FlightsRepository
+    private val flightsRepository: FlightsRepository,
+    private val preferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
-    var query = mutableStateOf("")
+    val query = mutableStateOf("")
     var searchActive = mutableStateOf(false)
 
     var selectedAirport = mutableStateOf<Airport?>(null)
@@ -35,8 +36,25 @@ class FlightsViewModel(
     val favorites: StateFlow<List<Favorite>> = _favorites
 
     init {
-        getResults("")
-        getFavorites()
+        viewModelScope.launch {
+            getQuery()
+            getResults("")
+            getFavorites()
+        }
+    }
+
+    fun getQuery() {
+        viewModelScope.launch {
+            preferencesRepository.inputValue.collect { inputValue ->
+                query.value = inputValue
+            }
+        }
+    }
+
+    fun setQuery(query: String) {
+        viewModelScope.launch {
+            preferencesRepository.saveInputValuePreference(query)
+        }
     }
 
     fun getResults(query: String) {
@@ -94,9 +112,9 @@ class FlightsViewModel(
         val factory = viewModelFactory {
             initializer {
                 val application = (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as FlightsApplication)
-                val repository = OfflineFlightsRepository(application.database.airportDao(), application.database.favoriteDao())
+                val flightsRepository = OfflineFlightsRepository(application.database.airportDao(), application.database.favoriteDao())
 
-                FlightsViewModel(repository)
+                FlightsViewModel(flightsRepository, application.userPreferencesRepository)
             }
         }
     }
